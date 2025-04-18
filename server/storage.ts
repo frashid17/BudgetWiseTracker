@@ -862,36 +862,36 @@ export class DatabaseStorage implements IStorage {
 
   async getCategories(userId: number): Promise<Category[]> {
     if (!db) return [];
-    return db.select().from(categories).where(
-      sql`${categories.userId} = ${userId} OR ${categories.userId} IS NULL`
+    return db.select().from(schema.categories).where(
+      sql`${schema.categories.userId} = ${userId} OR ${schema.categories.userId} IS NULL`
     );
   }
 
   async getCategory(id: number): Promise<Category | undefined> {
     if (!db) return undefined;
-    const [category] = await db.select().from(categories).where(eq(categories.id, id));
+    const [category] = await db.select().from(schema.categories).where(eq(schema.categories.id, id));
     return category;
   }
 
   async createCategory(category: InsertCategory): Promise<Category> {
     if (!db) throw new Error("Database not initialized");
-    const [newCategory] = await db.insert(categories).values(category).returning();
+    const [newCategory] = await db.insert(schema.categories).values(category).returning();
     return newCategory;
   }
 
   async updateCategory(id: number, category: Partial<InsertCategory>): Promise<Category> {
     if (!db) throw new Error("Database not initialized");
     const [updatedCategory] = await db
-      .update(categories)
+      .update(schema.categories)
       .set(category)
-      .where(eq(categories.id, id))
+      .where(eq(schema.categories.id, id))
       .returning();
     return updatedCategory;
   }
 
   async deleteCategory(id: number): Promise<void> {
     if (!db) throw new Error("Database not initialized");
-    await db.delete(categories).where(eq(categories.id, id));
+    await db.delete(schema.categories).where(eq(schema.categories.id, id));
   }
 
   async getTransactions(userId: number, filters?: {
@@ -904,32 +904,32 @@ export class DatabaseStorage implements IStorage {
     
     let query = db
       .select({
-        ...transactions,
-        categoryName: categories.name,
-        categoryColor: categories.color,
-        categoryIcon: categories.icon
+        ...schema.transactions,
+        categoryName: schema.categories.name,
+        categoryColor: schema.categories.color,
+        categoryIcon: schema.categories.icon
       })
-      .from(transactions)
-      .leftJoin(categories, eq(transactions.categoryId, categories.id))
-      .where(eq(transactions.userId, userId));
+      .from(schema.transactions)
+      .leftJoin(schema.categories, eq(schema.transactions.categoryId, schema.categories.id))
+      .where(eq(schema.transactions.userId, userId));
     
     if (filters?.fromDate) {
-      query = query.where(gte(transactions.date, filters.fromDate));
+      query = query.where(gte(schema.transactions.date, filters.fromDate));
     }
     
     if (filters?.toDate) {
-      query = query.where(gte(filters.toDate, transactions.date));
+      query = query.where(gte(filters.toDate, schema.transactions.date));
     }
     
     if (filters?.categoryId) {
-      query = query.where(eq(transactions.categoryId, filters.categoryId));
+      query = query.where(eq(schema.transactions.categoryId, filters.categoryId));
     }
     
     if (filters?.search) {
-      query = query.where(like(transactions.description, `%${filters.search}%`));
+      query = query.where(like(schema.transactions.description, `%${filters.search}%`));
     }
     
-    const results = await query.orderBy(desc(transactions.date));
+    const results = await query.orderBy(desc(schema.transactions.date));
     return results;
   }
 
@@ -938,15 +938,15 @@ export class DatabaseStorage implements IStorage {
     
     const results = await db
       .select({
-        ...transactions,
-        categoryName: categories.name,
-        categoryColor: categories.color,
-        categoryIcon: categories.icon
+        ...schema.transactions,
+        categoryName: schema.categories.name,
+        categoryColor: schema.categories.color,
+        categoryIcon: schema.categories.icon
       })
-      .from(transactions)
-      .leftJoin(categories, eq(transactions.categoryId, categories.id))
-      .where(eq(transactions.userId, userId))
-      .orderBy(desc(transactions.date))
+      .from(schema.transactions)
+      .leftJoin(schema.categories, eq(schema.transactions.categoryId, schema.categories.id))
+      .where(eq(schema.transactions.userId, userId))
+      .orderBy(desc(schema.transactions.date))
       .limit(limit);
     
     return results;
@@ -954,29 +954,29 @@ export class DatabaseStorage implements IStorage {
 
   async getTransaction(id: number): Promise<Transaction | undefined> {
     if (!db) return undefined;
-    const [transaction] = await db.select().from(transactions).where(eq(transactions.id, id));
+    const [transaction] = await db.select().from(schema.transactions).where(eq(schema.transactions.id, id));
     return transaction;
   }
 
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     if (!db) throw new Error("Database not initialized");
-    const [newTransaction] = await db.insert(transactions).values(transaction).returning();
+    const [newTransaction] = await db.insert(schema.transactions).values(transaction).returning();
     return newTransaction;
   }
 
   async updateTransaction(id: number, transaction: Partial<InsertTransaction>): Promise<Transaction> {
     if (!db) throw new Error("Database not initialized");
     const [updatedTransaction] = await db
-      .update(transactions)
+      .update(schema.transactions)
       .set(transaction)
-      .where(eq(transactions.id, id))
+      .where(eq(schema.transactions.id, id))
       .returning();
     return updatedTransaction;
   }
 
   async deleteTransaction(id: number): Promise<void> {
     if (!db) throw new Error("Database not initialized");
-    await db.delete(transactions).where(eq(transactions.id, id));
+    await db.delete(schema.transactions).where(eq(schema.transactions.id, id));
   }
 
   async importTransactions(userId: number, transactionsData: Partial<InsertTransaction>[]): Promise<number> {
@@ -1047,13 +1047,13 @@ export class DatabaseStorage implements IStorage {
     // Get budgets
     const dbBudgets = await db
       .select({
-        ...budgets,
-        categoryName: categories.name,
-        categoryIcon: categories.icon
+        ...schema.budgets,
+        categoryName: schema.categories.name,
+        categoryIcon: schema.categories.icon
       })
-      .from(budgets)
-      .leftJoin(categories, eq(budgets.categoryId, categories.id))
-      .where(eq(budgets.userId, userId));
+      .from(schema.budgets)
+      .leftJoin(schema.categories, eq(schema.budgets.categoryId, schema.categories.id))
+      .where(eq(schema.budgets.userId, userId));
     
     // Calculate current spending for each budget
     const now = new Date();
@@ -1066,16 +1066,16 @@ export class DatabaseStorage implements IStorage {
       // Get current spending
       const spendingQuery = db
         .select({
-          total: sql`SUM(${transactions.amount})`
+          total: sql`SUM(${schema.transactions.amount})`
         })
-        .from(transactions)
+        .from(schema.transactions)
         .where(
           and(
-            eq(transactions.userId, userId),
-            eq(transactions.categoryId, budget.categoryId),
-            gte(transactions.date, firstDay),
-            gte(lastDay, transactions.date),
-            eq(transactions.isIncome, false)
+            eq(schema.transactions.userId, userId),
+            eq(schema.transactions.categoryId, budget.categoryId),
+            gte(schema.transactions.date, firstDay),
+            gte(lastDay, schema.transactions.date),
+            eq(schema.transactions.isIncome, false)
           )
         );
       
@@ -1097,29 +1097,29 @@ export class DatabaseStorage implements IStorage {
 
   async getBudget(id: number): Promise<Budget | undefined> {
     if (!db) return undefined;
-    const [budget] = await db.select().from(budgets).where(eq(budgets.id, id));
+    const [budget] = await db.select().from(schema.budgets).where(eq(schema.budgets.id, id));
     return budget;
   }
 
   async createBudget(budget: InsertBudget): Promise<Budget> {
     if (!db) throw new Error("Database not initialized");
-    const [newBudget] = await db.insert(budgets).values(budget).returning();
+    const [newBudget] = await db.insert(schema.budgets).values(budget).returning();
     return newBudget;
   }
 
   async updateBudget(id: number, budget: Partial<InsertBudget>): Promise<Budget> {
     if (!db) throw new Error("Database not initialized");
     const [updatedBudget] = await db
-      .update(budgets)
+      .update(schema.budgets)
       .set(budget)
-      .where(eq(budgets.id, id))
+      .where(eq(schema.budgets.id, id))
       .returning();
     return updatedBudget;
   }
 
   async deleteBudget(id: number): Promise<void> {
     if (!db) throw new Error("Database not initialized");
-    await db.delete(budgets).where(eq(budgets.id, id));
+    await db.delete(schema.budgets).where(eq(schema.budgets.id, id));
   }
 
   async getGoals(userId: number): Promise<Goal[]> {
@@ -1127,8 +1127,8 @@ export class DatabaseStorage implements IStorage {
     
     const dbGoals = await db
       .select()
-      .from(goals)
-      .where(eq(goals.userId, userId));
+      .from(schema.goals)
+      .where(eq(schema.goals.userId, userId));
     
     return dbGoals.map(goal => {
       const currentAmount = Number(goal.currentAmount);
@@ -1144,38 +1144,38 @@ export class DatabaseStorage implements IStorage {
 
   async getGoal(id: number): Promise<Goal | undefined> {
     if (!db) return undefined;
-    const [goal] = await db.select().from(goals).where(eq(goals.id, id));
+    const [goal] = await db.select().from(schema.goals).where(eq(schema.goals.id, id));
     return goal;
   }
 
   async createGoal(goal: InsertGoal): Promise<Goal> {
     if (!db) throw new Error("Database not initialized");
-    const [newGoal] = await db.insert(goals).values(goal).returning();
+    const [newGoal] = await db.insert(schema.goals).values(goal).returning();
     return newGoal;
   }
 
   async updateGoal(id: number, goal: Partial<InsertGoal>): Promise<Goal> {
     if (!db) throw new Error("Database not initialized");
     const [updatedGoal] = await db
-      .update(goals)
+      .update(schema.goals)
       .set(goal)
-      .where(eq(goals.id, id))
+      .where(eq(schema.goals.id, id))
       .returning();
     return updatedGoal;
   }
 
   async deleteGoal(id: number): Promise<void> {
     if (!db) throw new Error("Database not initialized");
-    await db.delete(goals).where(eq(goals.id, id));
+    await db.delete(schema.goals).where(eq(schema.goals.id, id));
   }
 
   async getReminders(userId: number): Promise<Reminder[]> {
     if (!db) return [];
     return db
       .select()
-      .from(reminders)
-      .where(eq(reminders.userId, userId))
-      .orderBy(reminders.dueDate);
+      .from(schema.reminders)
+      .where(eq(schema.reminders.userId, userId))
+      .orderBy(schema.reminders.dueDate);
   }
 
   async getUpcomingReminders(userId: number, days = 7): Promise<Reminder[]> {
@@ -1188,42 +1188,42 @@ export class DatabaseStorage implements IStorage {
     
     return db
       .select()
-      .from(reminders)
+      .from(schema.reminders)
       .where(
         and(
-          eq(reminders.userId, userId),
-          gte(reminders.dueDate, now),
-          gte(cutoffDate, reminders.dueDate)
+          eq(schema.reminders.userId, userId),
+          gte(schema.reminders.dueDate, now),
+          gte(cutoffDate, schema.reminders.dueDate)
         )
       )
-      .orderBy(reminders.dueDate);
+      .orderBy(schema.reminders.dueDate);
   }
 
   async getReminder(id: number): Promise<Reminder | undefined> {
     if (!db) return undefined;
-    const [reminder] = await db.select().from(reminders).where(eq(reminders.id, id));
+    const [reminder] = await db.select().from(schema.reminders).where(eq(schema.reminders.id, id));
     return reminder;
   }
 
   async createReminder(reminder: InsertReminder): Promise<Reminder> {
     if (!db) throw new Error("Database not initialized");
-    const [newReminder] = await db.insert(reminders).values(reminder).returning();
+    const [newReminder] = await db.insert(schema.reminders).values(reminder).returning();
     return newReminder;
   }
 
   async updateReminder(id: number, reminder: Partial<InsertReminder>): Promise<Reminder> {
     if (!db) throw new Error("Database not initialized");
     const [updatedReminder] = await db
-      .update(reminders)
+      .update(schema.reminders)
       .set(reminder)
-      .where(eq(reminders.id, id))
+      .where(eq(schema.reminders.id, id))
       .returning();
     return updatedReminder;
   }
 
   async deleteReminder(id: number): Promise<void> {
     if (!db) throw new Error("Database not initialized");
-    await db.delete(reminders).where(eq(reminders.id, id));
+    await db.delete(schema.reminders).where(eq(schema.reminders.id, id));
   }
 
   async getDashboardBalance(userId: number): Promise<{
@@ -1238,10 +1238,10 @@ export class DatabaseStorage implements IStorage {
     // Calculate overall balance
     const balanceQuery = db
       .select({
-        balance: sql`SUM(CASE WHEN ${transactions.isIncome} THEN ${transactions.amount} ELSE -${transactions.amount} END)`
+        balance: sql`SUM(CASE WHEN ${schema.transactions.isIncome} THEN ${schema.transactions.amount} ELSE -${schema.transactions.amount} END)`
       })
-      .from(transactions)
-      .where(eq(transactions.userId, userId));
+      .from(schema.transactions)
+      .where(eq(schema.transactions.userId, userId));
     
     const [balanceResult] = await balanceQuery;
     const currentBalance = Number(balanceResult?.balance || 0);
@@ -1252,27 +1252,27 @@ export class DatabaseStorage implements IStorage {
     
     const incomeQuery = db
       .select({
-        total: sql`SUM(${transactions.amount})`
+        total: sql`SUM(${schema.transactions.amount})`
       })
-      .from(transactions)
+      .from(schema.transactions)
       .where(
         and(
-          eq(transactions.userId, userId),
-          eq(transactions.isIncome, true),
-          gte(transactions.date, firstDayOfMonth)
+          eq(schema.transactions.userId, userId),
+          eq(schema.transactions.isIncome, true),
+          gte(schema.transactions.date, firstDayOfMonth)
         )
       );
     
     const expenseQuery = db
       .select({
-        total: sql`SUM(${transactions.amount})`
+        total: sql`SUM(${schema.transactions.amount})`
       })
-      .from(transactions)
+      .from(schema.transactions)
       .where(
         and(
-          eq(transactions.userId, userId),
-          eq(transactions.isIncome, false),
-          gte(transactions.date, firstDayOfMonth)
+          eq(schema.transactions.userId, userId),
+          eq(schema.transactions.isIncome, false),
+          gte(schema.transactions.date, firstDayOfMonth)
         )
       );
     
@@ -1305,29 +1305,29 @@ export class DatabaseStorage implements IStorage {
       
       const incomeQuery = db
         .select({
-          total: sql`SUM(${transactions.amount})`
+          total: sql`SUM(${schema.transactions.amount})`
         })
-        .from(transactions)
+        .from(schema.transactions)
         .where(
           and(
-            eq(transactions.userId, userId),
-            eq(transactions.isIncome, true),
-            gte(transactions.date, firstDay),
-            gte(lastDay, transactions.date)
+            eq(schema.transactions.userId, userId),
+            eq(schema.transactions.isIncome, true),
+            gte(schema.transactions.date, firstDay),
+            gte(lastDay, schema.transactions.date)
           )
         );
       
       const expenseQuery = db
         .select({
-          total: sql`SUM(${transactions.amount})`
+          total: sql`SUM(${schema.transactions.amount})`
         })
-        .from(transactions)
+        .from(schema.transactions)
         .where(
           and(
-            eq(transactions.userId, userId),
-            eq(transactions.isIncome, false),
-            gte(transactions.date, firstDay),
-            gte(lastDay, transactions.date)
+            eq(schema.transactions.userId, userId),
+            eq(schema.transactions.isIncome, false),
+            gte(schema.transactions.date, firstDay),
+            gte(lastDay, schema.transactions.date)
           )
         );
       
@@ -1354,11 +1354,11 @@ export class DatabaseStorage implements IStorage {
     // Get all expense categories
     const categoriesList = await db
       .select()
-      .from(categories)
+      .from(schema.categories)
       .where(
         and(
-          sql`${categories.userId} = ${userId} OR ${categories.userId} IS NULL`,
-          eq(categories.isIncome, false)
+          sql`${schema.categories.userId} = ${userId} OR ${schema.categories.userId} IS NULL`,
+          eq(schema.categories.isIncome, false)
         )
       );
     
@@ -1369,14 +1369,14 @@ export class DatabaseStorage implements IStorage {
     // Get total expenses for this month
     const totalExpenseQuery = db
       .select({
-        total: sql`SUM(${transactions.amount})`
+        total: sql`SUM(${schema.transactions.amount})`
       })
-      .from(transactions)
+      .from(schema.transactions)
       .where(
         and(
-          eq(transactions.userId, userId),
-          eq(transactions.isIncome, false),
-          gte(transactions.date, firstDayOfMonth)
+          eq(schema.transactions.userId, userId),
+          eq(schema.transactions.isIncome, false),
+          gte(schema.transactions.date, firstDayOfMonth)
         )
       );
     
@@ -1397,15 +1397,15 @@ export class DatabaseStorage implements IStorage {
     for (const category of categoriesList) {
       const query = db
         .select({
-          total: sql`SUM(${transactions.amount})`
+          total: sql`SUM(${schema.transactions.amount})`
         })
-        .from(transactions)
+        .from(schema.transactions)
         .where(
           and(
-            eq(transactions.userId, userId),
-            eq(transactions.categoryId, category.id),
-            eq(transactions.isIncome, false),
-            gte(transactions.date, firstDayOfMonth)
+            eq(schema.transactions.userId, userId),
+            eq(schema.transactions.categoryId, category.id),
+            eq(schema.transactions.isIncome, false),
+            gte(schema.transactions.date, firstDayOfMonth)
           )
         );
       
@@ -1424,15 +1424,15 @@ export class DatabaseStorage implements IStorage {
     // Get uncategorized spending
     const uncategorizedQuery = db
       .select({
-        total: sql`SUM(${transactions.amount})`
+        total: sql`SUM(${schema.transactions.amount})`
       })
-      .from(transactions)
+      .from(schema.transactions)
       .where(
         and(
-          eq(transactions.userId, userId),
-          sql`${transactions.categoryId} IS NULL`,
-          eq(transactions.isIncome, false),
-          gte(transactions.date, firstDayOfMonth)
+          eq(schema.transactions.userId, userId),
+          sql`${schema.transactions.categoryId} IS NULL`,
+          eq(schema.transactions.isIncome, false),
+          gte(schema.transactions.date, firstDayOfMonth)
         )
       );
     
@@ -1454,8 +1454,8 @@ export class DatabaseStorage implements IStorage {
     if (!db) return undefined;
     const [setting] = await db
       .select()
-      .from(csvSettings)
-      .where(eq(csvSettings.userId, userId));
+      .from(schema.csvSettings)
+      .where(eq(schema.csvSettings.userId, userId));
     return setting;
   }
 
@@ -1466,14 +1466,14 @@ export class DatabaseStorage implements IStorage {
     
     if (existing) {
       const [updated] = await db
-        .update(csvSettings)
+        .update(schema.csvSettings)
         .set(settings)
-        .where(eq(csvSettings.id, existing.id))
+        .where(eq(schema.csvSettings.id, existing.id))
         .returning();
       return updated;
     } else {
       const [newSetting] = await db
-        .insert(csvSettings)
+        .insert(schema.csvSettings)
         .values({
           userId,
           skipHeader: true,
