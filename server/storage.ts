@@ -772,28 +772,28 @@ export class MemStorage implements IStorage {
 export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     if (!db) return undefined;
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, id));
     return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     if (!db) return undefined;
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.username, username));
     return user;
   }
 
   async createUser(user: InsertUser): Promise<User> {
     if (!db) throw new Error("Database not initialized");
-    const [newUser] = await db.insert(users).values(user).returning();
+    const [newUser] = await db.insert(schema.users).values(user).returning();
     return newUser;
   }
   
   async updateUser(id: number, userData: Partial<User>): Promise<User> {
     if (!db) throw new Error("Database not initialized");
     const [updatedUser] = await db
-      .update(users)
+      .update(schema.users)
       .set(userData)
-      .where(eq(users.id, id))
+      .where(eq(schema.users.id, id))
       .returning();
     return updatedUser;
   }
@@ -802,7 +802,7 @@ export class DatabaseStorage implements IStorage {
     if (!db) throw new Error("Database not initialized");
     
     // Get the user
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, id));
     if (!user) return false;
     
     // Compare passwords (this would use scrypt in the real implementation)
@@ -811,9 +811,9 @@ export class DatabaseStorage implements IStorage {
     
     // Update the password
     await db
-      .update(users)
+      .update(schema.users)
       .set({ password: newPassword })
-      .where(eq(users.id, id));
+      .where(eq(schema.users.id, id));
     
     return true;
   }
