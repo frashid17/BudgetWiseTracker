@@ -11,6 +11,7 @@ import TransactionsPage from "./pages/transactions-page";
 import BudgetsPage from "./pages/budgets-page";
 import GoalsPage from "./pages/goals-page";
 import RemindersPage from "./pages/reminders-page";
+import SettingsPage from "./pages/settings-page";
 
 // Protected component wrapper
 function Protected({ children }: { children: React.ReactNode }) {
@@ -57,6 +58,11 @@ function Router() {
       <Route path="/reminders">
         <Protected>
           <RemindersPage />
+        </Protected>
+      </Route>
+      <Route path="/settings">
+        <Protected>
+          <SettingsPage />
         </Protected>
       </Route>
       <Route path="/auth" component={AuthPage} />

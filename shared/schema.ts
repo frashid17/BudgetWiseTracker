@@ -11,14 +11,30 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
+  profilePicture: text("profile_picture"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const usersRelations = relations(users, ({ many }) => ({
+// User Settings table
+export const userSettings = pgTable("user_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).unique(),
+  theme: text("theme").default("light"),
+  highContrast: boolean("high_contrast").default(false),
+  language: text("language").default("en"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const usersRelations = relations(users, ({ many, one }) => ({
   transactions: many(transactions),
   budgets: many(budgets),
   goals: many(goals),
   reminders: many(reminders),
+  settings: one(userSettings, {
+    fields: [users.id],
+    references: [userSettings.userId],
+  }),
 }));
 
 // Categories table
@@ -162,6 +178,7 @@ export type InsertReminder = z.infer<typeof insertReminderSchema>;
 export type LoginData = z.infer<typeof loginSchema>;
 
 export type User = typeof users.$inferSelect;
+export type UserSettings = typeof userSettings.$inferSelect;
 export type Category = typeof categories.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Budget = typeof budgets.$inferSelect;

@@ -248,6 +248,152 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get upcoming reminders" });
     }
   });
+
+  // User Settings API endpoints
+  app.get("/api/user/settings", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    
+    try {
+      const userSettings = await storage.getUserSettings(req.user.id);
+      if (!userSettings) {
+        // If no settings exist yet, create default settings
+        const newSettings = await storage.createUserSettings({
+          userId: req.user.id,
+          theme: 'light',
+          highContrast: false,
+          language: 'en'
+        });
+        return res.json(newSettings);
+      }
+      res.json(userSettings);
+    } catch (error) {
+      console.error("Error getting user settings:", error);
+      res.status(500).json({ error: "Failed to get user settings" });
+    }
+  });
+  
+  app.patch("/api/user/settings", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    
+    try {
+      const { theme, highContrast, language } = req.body;
+      
+      const updatedSettings = await storage.updateUserSettings(req.user.id, {
+        theme,
+        highContrast,
+        language
+      });
+      
+      res.json(updatedSettings);
+    } catch (error) {
+      console.error("Error updating user settings:", error);
+      res.status(500).json({ error: "Failed to update user settings" });
+    }
+  });
+  
+  app.patch("/api/user/profile", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    
+    try {
+      const { firstName, lastName, email } = req.body;
+      
+      const updatedUser = await storage.updateUser(req.user.id, {
+        firstName,
+        lastName,
+        email
+      });
+      
+      // Don't return the password in the response
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ error: "Failed to update user profile" });
+    }
+  });
+  
+  app.post("/api/user/change-password", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      const success = await storage.changeUserPassword(req.user.id, currentPassword, newPassword);
+      
+      if (!success) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+  
+  // Configure profile picture upload
+  const profilePictureUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = path.join(process.cwd(), 'uploads/profile-pictures');
+        
+        // Ensure upload directory exists
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        // Use user ID and timestamp to create unique filenames
+        const userId = req.user?.id;
+        const timestamp = Date.now();
+        const fileExtension = path.extname(file.originalname).toLowerCase();
+        cb(null, `user-${userId}-${timestamp}${fileExtension}`);
+      }
+    }),
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      // Accept only images
+      const mimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (mimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, GIF and WebP images are allowed.') as any);
+      }
+    }
+  });
+  
+  app.post("/api/user/profile-picture", profilePictureUpload.single('profilePicture'), async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ error: "Not authenticated" });
+    
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      // Get the relative path to the uploaded file
+      const filePath = `/uploads/profile-pictures/${path.basename(req.file.path)}`;
+      
+      // Update user with the profile picture path
+      const updatedUser = await storage.updateUser(req.user.id, {
+        profilePicture: filePath,
+      });
+      
+      res.json({
+        success: true,
+        imageUrl: filePath
+      });
+    } catch (error) {
+      console.error("Error uploading profile picture:", error);
+      res.status(500).json({ 
+        error: "Failed to upload profile picture",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
   
   return httpServer;
 }
