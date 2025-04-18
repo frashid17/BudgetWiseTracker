@@ -1,0 +1,111 @@
+Below is a well-structured prompt you can use to ask an AI agent to build the BudgetWise personal financial dashboard from scratch. The prompt is detailed, clear, and includes all necessary specifications from the project description, ensuring the AI understands the requirements and deliverables.
+
+---
+
+**Prompt for AI Agent**:
+
+I need you to build a full-stack personal financial dashboard application called **BudgetWise** from scratch, following the specifications below. BudgetWise is an intuitive, feature-rich platform designed to help users track expenses, monitor income, set savings goals, and visualize financial trends. The project should be completed as a 6-week intermediate-level fintech application, using modern tools and frameworks like React, Node.js, MySQL, and deployment on Vercel/Netlify. Below are the detailed requirements, features, technologies, and guidelines for the project.
+
+### Project Overview
+- **Duration**: 6 weeks (provide a suggested timeline for development phases).
+- **Level**: Intermediate.
+- **Field**: Fintech (Financial Technology).
+- **Goal**: Create a scalable, secure, and user-friendly dashboard that empowers users to manage their finances with features like expense tracking, budgeting, automated reminders, and data visualizations.
+
+### Functional Requirements
+The application must include the following features:
+1. **CSV Bank Statement Parsing**:
+   - Allow users to upload CSV files of bank statements.
+   - Parse and categorize transactions (e.g., groceries, utilities, income).
+2. **Rule-Based Budgeting**:
+   - Enable users to set budget rules (e.g., allocate $200/month for dining).
+   - Provide analytics to track spending against budgets.
+3. **Automated Bill Reminders**:
+   - Schedule reminders for bill payments using Node-cron.
+   - Send notifications via email using SendGrid (or Twilio for SMS as an alternative).
+4. **Financial Dashboard**:
+   - Display income, expenses, and savings goals.
+   - Visualize financial trends using charts (e.g., spending by category, income over time).
+5. **User Authentication**:
+   - Secure login and registration using Firebase Auth or JWT with Passport.js.
+   - Protect sensitive financial data.
+6. **Data Management**:
+   - Store user data (transactions, budgets, goals) in MySQL or SQLite.
+   - Support CRUD operations for financial data.
+
+### Technical Requirements
+Use the following technologies and tools:
+- **Front-End**:
+  - React for component-driven UI.
+  - HTML, CSS (with Tailwind CSS or Material UI for styling).
+  - Chart.js for data visualizations.
+  - Redux Toolkit or React Context API for state management.
+- **Back-End**:
+  - Node.js and Express.js for REST API development.
+  - MySQL or SQLite for database management.
+- **Authentication**:
+  - Firebase Auth or JWT with Passport.js.
+- **Deployment**:
+  - Deploy the front-end and back-end on Vercel and/or Netlify.
+- **Version Control**:
+  - Use Git and GitHub for version control and code reviews.
+- **Utilities**:
+  - Node-cron for scheduling reminders.
+  - SendGrid (or Twilio) for notifications.
+
+### Development Phases
+Please provide a suggested 6-week timeline with milestones, such as:
+- Week 1: Set up development environment, initialize Git repository, and design UI mockups.
+- Week 2: Build front-end components (dashboard, forms, charts).
+- Week 3: Develop back-end APIs and database schema.
+- Week 4: Implement authentication and CSV parsing.
+- Week 5: Integrate reminders, state management, and testing.
+- Week 6: Deploy to Vercel/Netlify, conduct final testing, and polish UX.
+
+### Deliverables
+1. **Source Code**:
+   - Fully functional front-end and back-end code hosted in a GitHub repository.
+   - Clear folder structure and documentation (e.g., README with setup instructions).
+2. **Deployed Application**:
+   - Live application accessible on Vercel or Netlify.
+3. **Documentation**:
+   - Explain how to set up the project locally (dependencies, environment variables, etc.).
+   - Describe the API endpoints (e.g., `/api/transactions`, `/api/budgets`).
+   - Provide instructions for uploading CSV files and testing features.
+4. **Testing**:
+   - Include unit tests for critical components (e.g., API endpoints, CSV parsing).
+   - Ensure the application is bug-free using debugging tools and React DevTools.
+
+### User Experience Guidelines
+- Design a **responsive UI** using Tailwind CSS or Material UI, optimized for desktop and mobile.
+- Ensure **intuitive navigation** with clear labels and feedback (e.g., success/error messages for form submissions).
+- Use **Chart.js** to create visually appealing and interactive financial charts.
+- Prioritize **security** by encrypting sensitive data and using environment variables for API keys.
+
+### Prerequisites (Assumed Knowledge)
+The application should be built assuming the developer has:
+- Basic knowledge of JavaScript/TypeScript.
+- Familiarity with React, HTML, CSS (Flexbox/Grid).
+- Understanding of REST APIs and CRUD operations.
+- Experience with Git/GitHub and SQL databases.
+- Comfort with debugging and DevTools.
+
+### Additional Instructions
+- Use **TypeScript** where possible to enhance code reliability.
+- Include **error handling** for API calls, file uploads, and user inputs.
+- Optimize performance (e.g., lazy-load charts, minimize API calls).
+- Follow **fintech best practices** for security (e.g., HTTPS, input validation, data encryption).
+- Provide **sample CSV files** for testing the upload feature.
+- If any libraries or tools are used beyond those specified (e.g., PapaParse for CSV parsing), justify their inclusion.
+
+### Questions for Clarification
+If you need clarification on any requirements (e.g., specific CSV format, preferred styling framework, or notification method), please ask before proceeding. For now, assume a standard CSV format with columns like `date`, `description`, `amount`, and `category`.
+
+### Final Notes
+Please provide regular updates on progress (e.g., completed milestones, challenges faced). If you encounter issues (e.g., library incompatibilities, deployment errors), suggest solutions and explain trade-offs. The end goal is a production-ready, user-friendly financial dashboard that meets the specified requirements and can be scaled for broader fintech use cases.
+
+Can you confirm you understand the requirements and are ready to start? If so, please provide an initial plan or ask any clarifying questions before beginning development.
+
+---
+
+This prompt is comprehensive, actionable, and structured to guide the AI agent in building BudgetWise from scratch while allowing flexibility for clarification or adjustments. Let me know if you'd like to tweak the prompt further or focus on specific aspects!
