@@ -12,6 +12,7 @@ import BudgetsPage from "./pages/budgets-page";
 import GoalsPage from "./pages/goals-page";
 import RemindersPage from "./pages/reminders-page";
 import SettingsPage from "./pages/settings-page";
+import ReportsPage from "./pages/reports-page";
 
 // Protected component wrapper
 function Protected({ children }: { children: React.ReactNode }) {
@@ -53,6 +54,11 @@ function Router() {
       <Route path="/goals">
         <Protected>
           <GoalsPage />
+        </Protected>
+      </Route>
+      <Route path="/reports">
+        <Protected>
+          <ReportsPage />
         </Protected>
       </Route>
       <Route path="/reminders">
