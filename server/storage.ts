@@ -1,11 +1,12 @@
+import * as schema from "@shared/schema";
 import { 
-  users, type User, type InsertUser,
-  categories, type Category, type InsertCategory,
-  transactions, type Transaction, type InsertTransaction, type TransactionWithCategory,
-  budgets, type Budget, type InsertBudget,
-  goals, type Goal, type InsertGoal,
-  reminders, type Reminder, type InsertReminder,
-  csvSettings, type CsvSetting
+  type User, type InsertUser, type UserSettings,
+  type Category, type InsertCategory,
+  type Transaction, type InsertTransaction, type TransactionWithCategory,
+  type Budget, type InsertBudget,
+  type Goal, type InsertGoal,
+  type Reminder, type InsertReminder,
+  type CsvSetting
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, between, like, gte, desc, sql } from "drizzle-orm";
@@ -819,13 +820,13 @@ export class DatabaseStorage implements IStorage {
   
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {
     if (!db) return undefined;
-    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+    const [settings] = await db.select().from(schema.userSettings).where(eq(schema.userSettings.userId, userId));
     return settings;
   }
   
   async createUserSettings(settings: { userId: number, theme?: string, highContrast?: boolean, language?: string }): Promise<UserSettings> {
     if (!db) throw new Error("Database not initialized");
-    const [newSettings] = await db.insert(userSettings).values({
+    const [newSettings] = await db.insert(schema.userSettings).values({
       userId: settings.userId,
       theme: settings.theme || 'light',
       highContrast: settings.highContrast || false,
@@ -843,9 +844,9 @@ export class DatabaseStorage implements IStorage {
     if (existingSettings) {
       // Update existing settings
       const [updatedSettings] = await db
-        .update(userSettings)
+        .update(schema.userSettings)
         .set(settings)
-        .where(eq(userSettings.userId, userId))
+        .where(eq(schema.userSettings.userId, userId))
         .returning();
       return updatedSettings;
     } else {
