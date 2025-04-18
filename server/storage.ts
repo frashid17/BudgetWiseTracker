@@ -16,6 +16,13 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, userData: Partial<User>): Promise<User>;
+  changeUserPassword(id: number, currentPassword: string, newPassword: string): Promise<boolean>;
+  
+  // User Settings operations
+  getUserSettings(userId: number): Promise<UserSettings | undefined>;
+  createUserSettings(settings: { userId: number, theme?: string, highContrast?: boolean, language?: string }): Promise<UserSettings>;
+  updateUserSettings(userId: number, settings: Partial<UserSettings>): Promise<UserSettings>;
   
   // Category operations
   getCategories(userId: number): Promise<Category[]>;
@@ -85,6 +92,7 @@ export interface IStorage {
 // Memory Storage implementation
 export class MemStorage implements IStorage {
   private usersMap: Map<number, User>;
+  private userSettingsMap: Map<number, UserSettings>;
   private categoriesMap: Map<number, Category>;
   private transactionsMap: Map<number, Transaction>;
   private budgetsMap: Map<number, Budget>;
@@ -95,6 +103,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.usersMap = new Map();
+    this.userSettingsMap = new Map();
     this.categoriesMap = new Map();
     this.transactionsMap = new Map();
     this.budgetsMap = new Map();
@@ -104,6 +113,7 @@ export class MemStorage implements IStorage {
     
     this.nextId = {
       users: 1,
+      userSettings: 1,
       categories: 1,
       transactions: 1,
       budgets: 1,
@@ -162,6 +172,7 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id, 
+      profilePicture: null,
       createdAt: now 
     };
     this.usersMap.set(id, user);
@@ -179,6 +190,14 @@ export class MemStorage implements IStorage {
         userId: id
       });
     }
+    
+    // Create default user settings
+    await this.createUserSettings({
+      userId: id,
+      theme: 'light',
+      highContrast: false,
+      language: 'en'
+    });
     
     return user;
   }
@@ -486,6 +505,79 @@ export class MemStorage implements IStorage {
     this.remindersMap.delete(id);
   }
 
+  // User Settings operations
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    return Array.from(this.userSettingsMap.values()).find(
+      (settings) => settings.userId === userId
+    );
+  }
+
+  async createUserSettings(settings: { userId: number, theme?: string, highContrast?: boolean, language?: string }): Promise<UserSettings> {
+    const id = this.nextId.userSettings++;
+    const now = new Date();
+    
+    const newSettings: UserSettings = {
+      id,
+      userId: settings.userId,
+      theme: settings.theme || 'light',
+      highContrast: settings.highContrast || false,
+      language: settings.language || 'en',
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.userSettingsMap.set(id, newSettings);
+    return newSettings;
+  }
+
+  async updateUserSettings(userId: number, settings: Partial<UserSettings>): Promise<UserSettings> {
+    let userSettings = await this.getUserSettings(userId);
+    
+    if (!userSettings) {
+      // Create settings if they don't exist
+      userSettings = await this.createUserSettings({
+        userId, 
+        theme: settings.theme,
+        highContrast: settings.highContrast,
+        language: settings.language
+      });
+      return userSettings;
+    }
+    
+    // Update existing settings
+    const updatedSettings: UserSettings = {
+      ...userSettings,
+      ...settings,
+      updatedAt: new Date()
+    };
+    
+    this.userSettingsMap.set(userSettings.id, updatedSettings);
+    return updatedSettings;
+  }
+
+  // User update/password operations
+  async updateUser(id: number, userData: Partial<User>): Promise<User> {
+    const user = this.usersMap.get(id);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    const updatedUser = { ...user, ...userData };
+    this.usersMap.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async changeUserPassword(id: number, currentPassword: string, newPassword: string): Promise<boolean> {
+    const user = this.usersMap.get(id);
+    if (!user || user.password !== currentPassword) {
+      return false;
+    }
+    
+    user.password = newPassword;
+    this.usersMap.set(id, user);
+    return true;
+  }
+
   // Dashboard data
   async getDashboardBalance(userId: number): Promise<{
     currentBalance: number;
@@ -693,6 +785,78 @@ export class DatabaseStorage implements IStorage {
     if (!db) throw new Error("Database not initialized");
     const [newUser] = await db.insert(users).values(user).returning();
     return newUser;
+  }
+  
+  async updateUser(id: number, userData: Partial<User>): Promise<User> {
+    if (!db) throw new Error("Database not initialized");
+    const [updatedUser] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+  
+  async changeUserPassword(id: number, currentPassword: string, newPassword: string): Promise<boolean> {
+    if (!db) throw new Error("Database not initialized");
+    
+    // Get the user
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    if (!user) return false;
+    
+    // Compare passwords (this would use scrypt in the real implementation)
+    // TODO: Replace with actual password hashing
+    if (user.password !== currentPassword) return false;
+    
+    // Update the password
+    await db
+      .update(users)
+      .set({ password: newPassword })
+      .where(eq(users.id, id));
+    
+    return true;
+  }
+  
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    if (!db) return undefined;
+    const [settings] = await db.select().from(userSettings).where(eq(userSettings.userId, userId));
+    return settings;
+  }
+  
+  async createUserSettings(settings: { userId: number, theme?: string, highContrast?: boolean, language?: string }): Promise<UserSettings> {
+    if (!db) throw new Error("Database not initialized");
+    const [newSettings] = await db.insert(userSettings).values({
+      userId: settings.userId,
+      theme: settings.theme || 'light',
+      highContrast: settings.highContrast || false,
+      language: settings.language || 'en'
+    }).returning();
+    return newSettings;
+  }
+  
+  async updateUserSettings(userId: number, settings: Partial<UserSettings>): Promise<UserSettings> {
+    if (!db) throw new Error("Database not initialized");
+    
+    // Check if settings exist
+    const existingSettings = await this.getUserSettings(userId);
+    
+    if (existingSettings) {
+      // Update existing settings
+      const [updatedSettings] = await db
+        .update(userSettings)
+        .set(settings)
+        .where(eq(userSettings.userId, userId))
+        .returning();
+      return updatedSettings;
+    } else {
+      // Create new settings
+      return this.createUserSettings({
+        userId,
+        theme: settings.theme,
+        highContrast: settings.highContrast,
+        language: settings.language
+      });
+    }
   }
 
   async getCategories(userId: number): Promise<Category[]> {
