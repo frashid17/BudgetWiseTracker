@@ -18,7 +18,7 @@ type Budget = {
 };
 
 export function BudgetOverview({ className }: BudgetOverviewProps) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<{ budgets: Budget[] }>({
     queryKey: ["/api/budgets/overview"],
   });
 
@@ -42,7 +42,7 @@ export function BudgetOverview({ className }: BudgetOverviewProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "KSH",
       maximumFractionDigits: 0,
     }).format(amount);
   };
@@ -112,9 +112,9 @@ export function BudgetOverview({ className }: BudgetOverviewProps) {
                 value={budget.percentage}
                 max={100}
                 className="h-2.5"
-                indicatorClassName={
-                  budget.percentage > 100 ? "bg-red-500" : undefined
-                }
+                style={{
+                  backgroundColor: budget.percentage > 100 ? "red" : undefined,
+                }}
               />
             </div>
           ))}

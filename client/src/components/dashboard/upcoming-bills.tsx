@@ -17,7 +17,7 @@ type Bill = {
 };
 
 export function UpcomingBills({ className }: UpcomingBillsProps) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<{ reminders: Bill[] }>({
     queryKey: ["/api/reminders/upcoming"],
   });
 
@@ -39,7 +39,7 @@ export function UpcomingBills({ className }: UpcomingBillsProps) {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "KSH",
     }).format(amount);
   };
 

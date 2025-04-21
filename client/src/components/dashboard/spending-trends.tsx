@@ -30,7 +30,7 @@ export function SpendingTrends({ className }: SpendingTrendsProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "KSH",
       maximumFractionDigits: 0,
     }).format(value);
   };
