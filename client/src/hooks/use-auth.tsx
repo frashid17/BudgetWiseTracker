@@ -28,7 +28,10 @@ export const registerSchema = insertUserSchema.extend({
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  console.log("[AuthProvider] rendered ✅");
+
   const { toast } = useToast();
+
   const {
     data: user,
     error,
@@ -119,8 +122,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
+  console.log("[useAuth] context is:", context); // 🔍 Log context value
+
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
+
   return context;
 }

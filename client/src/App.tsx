@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
-import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
 import TransactionsPage from "./pages/transactions-page";
@@ -71,20 +71,25 @@ function Router() {
           <SettingsPage />
         </Protected>
       </Route>
-      <Route path="/auth" component={AuthPage} />
-      <Route component={NotFound} />
+
+      {/* ✅ Fix: Don't use component={} for AuthPage */}
+      <Route path="/auth">
+        <AuthPage />
+      </Route>
+
+      <Route>
+        <NotFound />
+      </Route>
     </Switch>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </AuthProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Router />
+    </TooltipProvider>
   );
 }
 
