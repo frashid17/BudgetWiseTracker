@@ -216,7 +216,7 @@ export class MemStorage implements IStorage {
 
   async createCategory(category: InsertCategory): Promise<Category> {
     const id = this.nextId.categories++;
-    const newCategory: Category = { ...category, id };
+    const newCategory: Category = { ...category, id, userId: category.userId ?? null, isIncome: category.isIncome ?? null };
     this.categoriesMap.set(id, newCategory);
     return newCategory;
   }
@@ -277,9 +277,9 @@ export class MemStorage implements IStorage {
       
       return {
         ...transaction,
-        categoryName: category?.name,
-        categoryColor: category?.color,
-        categoryIcon: category?.icon
+        categoryName: category?.name || undefined,
+        categoryColor: category?.color || undefined,
+        categoryIcon: category?.icon || undefined
       };
     });
   }
@@ -295,7 +295,7 @@ export class MemStorage implements IStorage {
 
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const id = this.nextId.transactions++;
-    const newTransaction: Transaction = { ...transaction, id };
+    const newTransaction: Transaction = { ...transaction, id, isIncome: transaction.isIncome ?? null, categoryId: transaction.categoryId ?? null };
     this.transactionsMap.set(id, newTransaction);
     return newTransaction;
   }
@@ -361,11 +361,11 @@ export class MemStorage implements IStorage {
       // Create the transaction
       const transaction: InsertTransaction = {
         userId,
-        categoryId,
+        categoryId: categoryId ?? null,
         amount: transactionData.amount!,
-        description: transactionData.description || 'Imported transaction',
+        description: transactionData.description ?? 'Imported transaction',
         date: transactionData.date!,
-        isIncome: transactionData.isIncome || false
+        isIncome: transactionData.isIncome ?? false
       };
       
       await this.createTransaction(transaction);
@@ -408,7 +408,7 @@ export class MemStorage implements IStorage {
 
   async createBudget(budget: InsertBudget): Promise<Budget> {
     const id = this.nextId.budgets++;
-    const newBudget: Budget = { ...budget, id };
+    const newBudget: Budget = { ...budget, id, categoryId: budget.categoryId ?? null, endDate: budget.endDate ?? null };
     this.budgetsMap.set(id, newBudget);
     return newBudget;
   }
@@ -441,7 +441,13 @@ export class MemStorage implements IStorage {
 
   async createGoal(goal: InsertGoal): Promise<Goal> {
     const id = this.nextId.goals++;
-    const newGoal: Goal = { ...goal, id };
+    const newGoal: Goal = { 
+      ...goal, 
+      id, 
+      currentAmount: goal.currentAmount ?? null, 
+      dueDate: goal.dueDate ?? null,
+      isCompleted: goal.isCompleted ?? null 
+    };
     this.goalsMap.set(id, newGoal);
     return newGoal;
   }
@@ -486,7 +492,15 @@ export class MemStorage implements IStorage {
 
   async createReminder(reminder: InsertReminder): Promise<Reminder> {
     const id = this.nextId.reminders++;
-    const newReminder: Reminder = { ...reminder, id };
+    const newReminder: Reminder = { 
+      ...reminder, 
+      id, 
+      categoryId: reminder.categoryId ?? null, 
+      amount: reminder.amount ?? null,
+      isRecurring: reminder.isRecurring ?? null,
+      frequency: reminder.frequency ?? null,
+      notificationSent: reminder.notificationSent ?? null
+    };
     this.remindersMap.set(id, newReminder);
     return newReminder;
   }
@@ -538,9 +552,9 @@ export class MemStorage implements IStorage {
       // Create settings if they don't exist
       userSettings = await this.createUserSettings({
         userId, 
-        theme: settings.theme,
-        highContrast: settings.highContrast,
-        language: settings.language
+        theme: settings.theme ?? undefined,
+        highContrast: settings.highContrast ?? false,
+        language: settings.language ?? undefined
       });
       return userSettings;
     }
@@ -759,8 +773,10 @@ export class MemStorage implements IStorage {
       const newSetting: CsvSetting = { 
         id, 
         userId, 
-        skipHeader: true,
-        ...settings 
+        bankName: settings.bankName ?? null,
+        columnMapping: settings.columnMapping ?? null,
+        skipHeader: settings.skipHeader ?? null,
+        autoCategories: settings.autoCategories ?? null
       };
       this.csvSettingsMap.set(id, newSetting);
       return newSetting;
@@ -853,9 +869,9 @@ export class DatabaseStorage implements IStorage {
       // Create new settings
       return this.createUserSettings({
         userId,
-        theme: settings.theme,
-        highContrast: settings.highContrast,
-        language: settings.language
+        theme: settings.theme ?? undefined,
+        highContrast: settings.highContrast ?? undefined,
+        language: settings.language ?? undefined
       });
     }
   }
@@ -904,7 +920,13 @@ export class DatabaseStorage implements IStorage {
     
     let query = db
       .select({
-        ...schema.transactions,
+        id: schema.transactions.id,
+        userId: schema.transactions.userId,
+        amount: schema.transactions.amount,
+        description: schema.transactions.description,
+        date: schema.transactions.date,
+        isIncome: schema.transactions.isIncome,
+        categoryId: schema.transactions.categoryId,
         categoryName: schema.categories.name,
         categoryColor: schema.categories.color,
         categoryIcon: schema.categories.icon
@@ -914,11 +936,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.transactions.userId, userId));
     
     if (filters?.fromDate) {
-      query = query.where(gte(schema.transactions.date, filters.fromDate));
+      query = query.andWhere(gte(schema.transactions.date, filters.fromDate!));
     }
     
     if (filters?.toDate) {
-      query = query.where(gte(filters.toDate, schema.transactions.date));
+      query = query.andWhere(gte(schema.transactions.date, filters.toDate));
     }
     
     if (filters?.categoryId) {
@@ -1313,7 +1335,7 @@ export class DatabaseStorage implements IStorage {
             eq(schema.transactions.userId, userId),
             eq(schema.transactions.isIncome, true),
             gte(schema.transactions.date, firstDay),
-            gte(lastDay, schema.transactions.date)
+            gte(schema.transactions.date, sql`${lastDay}`)
           )
         );
       
