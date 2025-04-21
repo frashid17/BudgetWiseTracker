@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -29,8 +29,9 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  const sessionSecret = process.env.SESSION_SECRET || "budgetwise-secret-key-change-in-production";
-  
+  const sessionSecret =
+    process.env.SESSION_SECRET || "budgetwise-secret-key-change-in-production";
+
   const sessionSettings: session.SessionOptions = {
     secret: sessionSecret,
     resave: false,
@@ -39,7 +40,7 @@ export function setupAuth(app: Express) {
       secure: process.env.NODE_ENV === "production",
       maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
     },
-    store: sessionStore
+    store: sessionStore,
   };
 
   app.set("trust proxy", 1);
@@ -59,10 +60,11 @@ export function setupAuth(app: Express) {
       } catch (error) {
         return done(error);
       }
-    }),
+    })
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
+
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
@@ -72,31 +74,74 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res, next) => {
+  // REGISTER
+  app.post("/api/register", async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        return res.status(400).send("Username already exists");
+      console.log("📥 Register Body:", req.body);
+
+      const { username, password, email, firstName, lastName } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ error: "Username and password are required." });
       }
 
+      console.log("🟡 Checking if user exists...");
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already exists." });
+      }
+
+      console.log("🟢 Hashing password...");
+      const hashedPassword = await hashPassword(password);
+
+      console.log("🟢 Creating user...");
       const user = await storage.createUser({
-        ...req.body,
-        password: await hashPassword(req.body.password),
+        username,
+        email,
+        firstName,
+        lastName,
+        password: hashedPassword,
       });
 
+      console.log("🟢 Logging user in...");
       req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json(user);
+        if (err) {
+          console.error("🚨 Error during req.login:", err);
+          return next(err);
+        }
+
+        const { password, ...userWithoutPassword } = user;
+        res.status(201).json(userWithoutPassword);
       });
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      console.error("🔥 Error in /api/register:", error);
+      console.error("🧩 Type:", typeof error);
+      console.error("🧩 Constructor:", error?.constructor?.name);
+      console.error("🧩 Keys:", Object.keys(error));
+      console.error("🧩 Full dump:", error);
+      console.error("🧩 Stringified:", JSON.stringify(error));
+      console.error("🧩 Stack:", error?.stack);
+
+      return res.status(500).json({
+        error: "Registration failed",
+        details: {
+          type: typeof error,
+          name: error?.constructor?.name,
+          message: error?.message || "No message",
+          stack: error?.stack || "No stack",
+          stringified: JSON.stringify(error),
+          keys: Object.keys(error),
+        },
+      });
     }
   });
 
+  // LOGIN
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
     res.status(200).json(req.user);
   });
 
+  // LOGOUT
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);
@@ -104,6 +149,7 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // CURRENT USER
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
