@@ -16,7 +16,7 @@ export async function sendNotificationEmail(options: NotificationOptions): Promi
     const reminderDetails = reminders.map(reminder => {
       const dueDate = format(new Date(reminder.dueDate), "MMMM d, yyyy");
       const amount = reminder.amount 
-        ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(reminder.amount))
+        ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'KSH' }).format(Number(reminder.amount))
         : "N/A";
       
       return {
