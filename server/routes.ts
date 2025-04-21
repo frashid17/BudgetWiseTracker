@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { initCronJobs } from "./cron";
 import { setupWebSockets } from "./ws";
-import { sendNotificationEmail } from "./email";
+// import { sendNotificationEmail } from "./email";
 import multer from "multer";
 import { uploadAndParseCSV } from "../client/src/lib/csv-parser";
 import { insertTransactionSchema } from "@shared/schema";
@@ -26,7 +26,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
   // Set up WebSockets for real-time notifications (optional)
-  setupWebSockets(httpServer);
+  // setupWebSockets(httpServer);
   
   // Initialize scheduled tasks for reminders
   initCronJobs();
